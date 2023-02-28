@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "damddos"
+version = "0.1.0"
+description = ""
+authors = ["config <wangyihanger@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+paramiko = "^3.0.0"
+dynaconf = "^3.1.11"
+pyotp = "^2.8.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
