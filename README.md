@@ -29,10 +29,10 @@ poetry install
 
 1. 将 `example.secrets.toml` 复制为 `.secrets.toml`；
 2. 编辑 `.secrets.toml`，填入对应的认证信息；
-    1. `DAMDDOS_ENDPOINT` 堡垒机地址，如：`sso.example.com:60022`；
-    2. `DAMDDOS_USERNAME` 堡垒机账号；
-    3. `DAMDDOS_PASSWORD` 堡垒机密码；
-    4. `DAMDDOS_OTP_SECRET` 堡垒机“手机身份验证器”的“密钥”；
+    1. `DBAPP_SECURITY_USM_ENDPOINT` 堡垒机地址，如：`sso.example.com:60022`；
+    2. `DBAPP_SECURITY_USM_USERNAME` 堡垒机账号；
+    3. `DBAPP_SECURITY_USM_PASSWORD` 堡垒机密码；
+    4. `DBAPP_SECURITY_USM_OTP_SECRET` 堡垒机“手机身份验证器”的“密钥”；
 3. 运行自动化运维脚本
 
     ```
@@ -44,7 +44,7 @@ poetry install
 1. 如何获取身份验证码
 
     ```
-    poetry run python -c 'import pyotp; from config import settings; print(pyotp.TOTP(settings.DAMDDOS_OTP_SECRET).now())'
+    poetry run python -c 'import pyotp; from config import settings; print(pyotp.TOTP(settings.DBAPP_SECURITY_USM_OTP_SECRET).now())'
     ```
 
 2. 可否通过 Paramiko 向内网服务器上传/下载文件？

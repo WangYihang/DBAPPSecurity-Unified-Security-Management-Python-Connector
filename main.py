@@ -7,30 +7,30 @@ import interactive
 from config import settings
 
 
-class DamDDoS:
+class DBAppSecurityUSM:
     def __init__(self):
-        self.transport = paramiko.Transport(settings.DAMDDOS_ENDPOINT)
+        self.transport = paramiko.Transport(settings.DBAPP_SECURITY_USM_ENDPOINT)
 
     @staticmethod
     def get_otp():
         import pyotp
 
-        otp = pyotp.TOTP(settings.DAMDDOS_OTP_SECRET).now()
+        otp = pyotp.TOTP(settings.DBAPP_SECURITY_USM_OTP_SECRET).now()
         return str(otp)
 
     @staticmethod
-    def damddos_auth_handler(title, instructions, prompt_list):
-        return (DamDDoS.get_otp(),)
+    def dbapp_security_usm_auth_handler(title, instructions, prompt_list):
+        return (DBAppSecurityUSM.get_otp(),)
 
     def auth(self):
         self.transport.connect()
         self.transport.auth_password(
-            username=settings.DAMDDOS_USERNAME,
-            password=settings.DAMDDOS_PASSWORD,
+            username=settings.DBAPP_SECURITY_USM_USERNAME,
+            password=settings.DBAPP_SECURITY_USM_PASSWORD,
         )
         self.transport.auth_interactive(
-            username=settings.DAMDDOS_USERNAME,
-            handler=DamDDoS.damddos_auth_handler,
+            username=settings.DBAPP_SECURITY_USM_USERNAME,
+            handler=DBAppSecurityUSM.dbapp_security_usm_auth_handler,
         )
         self.channel = self.transport.open_session()
         self.channel.get_pty()
@@ -101,7 +101,7 @@ class DamDDoS:
 def main():
     logging.basicConfig()
     logging.getLogger("paramiko").setLevel(logging.INFO)
-    client = DamDDoS()
+    client = DBAppSecurityUSM()
     client.auth()
 
     command = "hostname && head -n 1 /etc/passwd"

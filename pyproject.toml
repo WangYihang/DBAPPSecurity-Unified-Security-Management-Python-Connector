@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "damddos"
+name = "DBAPPSecurity-Unified-Security-Management-Python-Connector"
 version = "0.1.0"
 description = ""
 authors = ["config <wangyihanger@gmail.com>"]
