@@ -1,10 +1,20 @@
-import time
+import verboselogs
 import uuid
-import logging
+import timeout_decorator
+import time
 import paramiko
-import interactive
+import logging
+import coloredlogs
 
+import interactive
 from config import settings
+
+
+verboselogs.install()
+logger = logging.getLogger()
+paramiko_logger = logging.getLogger("paramiko")
+coloredlogs.install(level="INFO", logger=logger)
+coloredlogs.install(level="INFO", logger=paramiko_logger)
 
 
 class DBAppSecurityUSM:
@@ -51,7 +61,7 @@ class DBAppSecurityUSM:
         """
         assert 1 <= server_id <= 50
 
-        logging.info(f"selecting server-{server_id:02d}")
+        logger.info(f"selecting the {server_id}th server")
         messages = [
             ":",  # enter search mode
             f"{server_id}",  # enter server_id
@@ -62,7 +72,7 @@ class DBAppSecurityUSM:
             time.sleep(0.5)
             self.channel.send(msg)
 
-        logging.info(f"initializing shell on server-{server_id:02d}")
+        logger.debug(f"initializing shell on the {server_id}th server")
         initial_commands = [
             # disable tty echo
             "stty -ctlecho -echo -echoctl -echoe -echok -echoke -echonl -echoprt",
@@ -71,7 +81,7 @@ class DBAppSecurityUSM:
         ]
 
         for initial_command in initial_commands:
-            logging.info(initial_command)
+            logger.debug(initial_command)
             time.sleep(0.5)
             self.channel.send(f"{initial_command}\n")
 
@@ -80,7 +90,7 @@ class DBAppSecurityUSM:
 
     def shell_exec(self, command):
         # execute the command
-        logging.info(f"executing {command}")
+        logger.debug(f"executing {command}")
         nonce1 = str(uuid.uuid4())
         nonce2 = str(uuid.uuid4())
         self.channel.send(f"echo {nonce1} && {command} && echo {nonce2}\n")
@@ -98,18 +108,32 @@ class DBAppSecurityUSM:
         return response
 
 
-def main():
-    logging.basicConfig()
-    logging.getLogger("paramiko").setLevel(logging.INFO)
+@timeout_decorator.timeout(16)
+def enter_shell_exec_exit(client, server_id, command):
+    client.enter_server(server_id=server_id)
+    logger.success(client.shell_exec(command).decode("utf-8"))
+    client.exit_server()
+
+
+def derive_new_client():
+    logger.info(f"derive a new connection to {settings.DBAPP_SECURITY_USM_ENDPOINT}")
     client = DBAppSecurityUSM()
     client.auth()
+    return client
+
+
+def main():
+    client = derive_new_client()
 
     command = "hostname && head -n 1 /etc/passwd"
-    for i in range(4):
+    for i in range(50):
         server_id = i + 1
-        client.enter_server(server_id=server_id)
-        print(client.shell_exec(command).decode("utf-8"))
-        client.exit_server()
+        try:
+            enter_shell_exec_exit(client, server_id, command)
+        except Exception as e:
+            logger.error(f"the {server_id}th server does not respond, {repr(e)}")
+            client.close()
+            client = derive_new_client()
 
     client.close()
 
