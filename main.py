@@ -5,13 +5,13 @@ import time
 import paramiko
 import logging
 import coloredlogs
+import os
 
 import interactive
 from config import settings
 
 
-verboselogs.install()
-logger = logging.getLogger()
+logger = verboselogs.VerboseLogger(os.path.basename(__file__))
 paramiko_logger = logging.getLogger("paramiko")
 coloredlogs.install(level="INFO", logger=logger)
 coloredlogs.install(level="INFO", logger=paramiko_logger)
@@ -49,6 +49,7 @@ class DBAppSecurityUSM:
         time.sleep(1)
 
     def close(self):
+        logger.warning(f"closing the connection to {settings.DBAPP_SECURITY_USM_ENDPOINT}")
         self.channel.close()
         self.transport.close()
 
