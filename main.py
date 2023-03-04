@@ -146,14 +146,29 @@ def batch(commands):
     return results
 
 
-def convert_commands_to_shell_script(commands):
-    filepath = "/tmp/setup-docker.sh"
+def convert_commands_to_shell_script(commands, name):
+    filepath = f"/tmp/setup-{name}.sh"
     echo_commands = [f"echo '#!/bin/bash' > {filepath}"] + [f"echo {repr(i)} >> {filepath}" for i in commands]
     batch([" && ".join(echo_commands)])
-    return filepath
+    return batch(
+        [f"cat {filepath} && /bin/bash -c 'nohup /bin/bash -x {filepath} &' && bash -c 'ps aux | grep {filepath}'"]
+    )
 
 
-def setup():
+def install_golang():
+    commands = [
+        "sudo yum install -y golang",
+        "sudo go env -w GO111MODULE=on",
+        "go env -w GO111MODULE=on",
+        "sudo go env -w GOPROXY=https://goproxy.cn,direct",
+        "go env -w GOPROXY=https://goproxy.cn,direct",
+        "echo 'export PATH=$PATH:/root/go/bin' | sudo tee -a /root/.bashrc",
+        "echo 'export PATH=$PATH:$HOME/go/bin' | tee -a $HOME/.bashrc",
+    ]
+    return convert_commands_to_shell_script(commands, name="golang")
+
+
+def install_docker():
     """
     [1] https://docs.docker.com/engine/install/centos/
     """
@@ -167,7 +182,29 @@ def setup():
         "sudo systemctl enable docker",
         "sudo docker run hello-world",
     ]
-    return convert_commands_to_shell_script(commands)
+    return convert_commands_to_shell_script(commands, name="docker")
+
+
+def install_kind_via_curl():
+    """install Kubenetes in Docker (kind)
+    Notice: unavailable due to the Great Firewall
+    """
+    commands = [
+        "KIND_DOWNLOAD_URL=https://kind.sigs.k8s.io/dl/v0.17.0/kind-$(uname)-amd64",
+        "echo $KIND_DOWNLOAD_URL",
+        "curl -Lo ./kind $KIND_DOWNLOAD_URL",
+        "chmod +x ./kind",
+        "sudo mv ./kind /usr/local/bin/kind",
+    ]
+    return convert_commands_to_shell_script(commands, name="kind")
+
+
+def install_kind_via_golang():
+    commands = [
+        "sudo go install sigs.k8s.io/kind@latest",
+        "go install sigs.k8s.io/kind@latest",
+    ]
+    return convert_commands_to_shell_script(commands, name="kind")
 
 
 def check_docker_version():
@@ -178,15 +215,27 @@ def check_docker_compose_version():
     batch(["docker compose version"])
 
 
+def check_golang_version():
+    batch(["go version"])
+
+
+def check_kind_version():
+    batch(["kind version"])
+
+
 def main():
-    # # step 1: check docker and compose version
+    # step 1: check docker and compose version
     check_docker_version()
     check_docker_compose_version()
+    check_golang_version()
+    check_kind_version()
     # step 2: upload shell script
-    filepath = setup()
-    # step 3: run shell script
-    batch([f"cat {filepath} && /bin/bash -c 'nohup /bin/bash -x {filepath} &' && bash -c 'ps aux | grep {filepath}'"])
-    # step 4: check running status
+    install_docker()
+    # step 3: install golang
+    install_golang()
+    # step 4: install kind via golang
+    install_kind_via_golang()
+    # step 5: check running status
     batch(["tail -n 10 nohup.out"])
 
 
