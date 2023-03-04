@@ -62,7 +62,7 @@ class DBAppSecurityUSM:
         """
         assert 1 <= server_id <= 50
 
-        logger.info(f"selecting the {server_id}th server")
+        logger.debug(f"selecting the {server_id}th server")
         messages = [
             ":",  # enter search mode
             f"{server_id}",  # enter server_id
@@ -94,7 +94,7 @@ class DBAppSecurityUSM:
         logger.debug(f"executing {command}")
         nonce1 = str(uuid.uuid4())
         nonce2 = str(uuid.uuid4())
-        self.channel.send(f"echo {nonce1} && {command} && echo {nonce2}\n")
+        self.channel.send(f"echo {nonce1} && {command} ; echo {nonce2}\n")
         self.__recv_until(self.channel, nonce1)
         response = self.__recv_until(self.channel, nonce2)
         return response.rstrip(nonce2.encode("utf-8")).strip()
@@ -109,11 +109,14 @@ class DBAppSecurityUSM:
         return response
 
 
-@timeout_decorator.timeout(16)
+@timeout_decorator.timeout(60)
 def enter_shell_exec_exit(client, server_id, command):
+    logger.warning(f"[node-{server_id:02d}] $ {command}")
     client.enter_server(server_id=server_id)
-    logger.success(client.shell_exec(command).decode("utf-8"))
+    result = client.shell_exec(command).decode("utf-8")
+    logger.success(result)
     client.exit_server()
+    return result
 
 
 def derive_new_client():
@@ -123,20 +126,64 @@ def derive_new_client():
     return client
 
 
-def main():
+def batch(commands):
     client = derive_new_client()
-
-    command = "hostname && head -n 1 /etc/passwd"
+    results = {}
     for i in range(50):
         server_id = i + 1
-        try:
-            enter_shell_exec_exit(client, server_id, command)
-        except Exception as e:
-            logger.error(f"the {server_id}th server does not respond, {repr(e)}")
-            client.close()
-            client = derive_new_client()
-
+        if server_id not in results.keys():
+            results[server_id] = []
+        for command in commands:
+            try:
+                result = enter_shell_exec_exit(client, server_id, command)
+            except Exception as e:
+                logger.error(f"the {server_id}th server does not respond, {repr(e)}")
+                client.close()
+                client = derive_new_client()
+                result = None
+        results[server_id].append((command, result))
     client.close()
+    return results
+
+
+def convert_commands_to_shell_script(commands):
+    filepath = "/tmp/setup-docker.sh"
+    echo_commands = [f"echo '#!/bin/bash' > {filepath}"] + [f"echo {repr(i)} >> {filepath}" for i in commands]
+    batch([" && ".join(echo_commands)])
+    return filepath
+
+
+def setup():
+    """
+    [1] https://docs.docker.com/engine/install/centos/
+    """
+    commands = [
+        "docker --version",
+        "sudo yum remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine",
+        "sudo yum install -y yum-utils",
+        "sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo",
+        "sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
+        "sudo systemctl start docker",
+        "sudo systemctl enable docker",
+        "sudo docker run hello-world",
+    ]
+    return convert_commands_to_shell_script(commands)
+
+
+def check_docker_version():
+    batch(["docker --version"])
+
+
+def main():
+    # step 1: check docker version
+    check_docker_version()
+    # step 2: upload shell script
+    filepath = setup()
+    # step 3: run shell script
+    filepath = "/tmp/setup-docker.sh"
+    batch([f"cat {filepath} && /bin/bash -c 'nohup /bin/bash -x {filepath} &' && bash -c 'ps aux | grep {filepath}'"])
+    # step 4: check running status
+    batch(["tail -n 10 nohup.out"])
 
 
 if __name__ == "__main__":
