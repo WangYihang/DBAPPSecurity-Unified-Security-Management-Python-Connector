@@ -174,13 +174,17 @@ def check_docker_version():
     batch(["docker --version"])
 
 
+def check_docker_compose_version():
+    batch(["docker compose version"])
+
+
 def main():
-    # step 1: check docker version
+    # # step 1: check docker and compose version
     check_docker_version()
+    check_docker_compose_version()
     # step 2: upload shell script
     filepath = setup()
     # step 3: run shell script
-    filepath = "/tmp/setup-docker.sh"
     batch([f"cat {filepath} && /bin/bash -c 'nohup /bin/bash -x {filepath} &' && bash -c 'ps aux | grep {filepath}'"])
     # step 4: check running status
     batch(["tail -n 10 nohup.out"])
