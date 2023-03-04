@@ -64,8 +64,8 @@ class DBAppSecurityUSM:
 
         logger.debug(f"selecting the {server_id}th server")
         messages = [
-            ":",  # enter search mode
-            f"{server_id}",  # enter server_id
+            "/",  # enter search mode
+            f"DNS_test{server_id:02d}",  # enter server_id
             "\n",  # press enter to search
             "\n",  # connect the target server
         ]
