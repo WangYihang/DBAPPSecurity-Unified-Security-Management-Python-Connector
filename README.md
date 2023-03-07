@@ -51,5 +51,15 @@ poetry install
 
     不能（应该）。
 
+3. 与服务器的连接最长能够维持多久？
+
+    未知，但最大空闲时间是 30 分钟。
+
+    经过测试，当与服务器的连接空闲超过 1800 秒时，连接将会被服务器主动关闭，并给出如下提示。
+
+    ```
+    [USM] session closed by 'idle timeout (1800 sec)'
+    ```
+
 [1]: https://www.dbappsecurity.com.cn/product/cloud157.html
 [2]: https://netmarket.oss.aliyuncs.com/9197aa5f-6fc2-47bd-8d35-f6b3c8e09b18.pdf
