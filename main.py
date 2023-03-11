@@ -108,7 +108,7 @@ class DBAppSecurityUSM:
             response += ch
         return response
 
-    def upload_file(self, local_filepath, remote_filepath):
+    def upload_file(self, local_filepath, remote_filepath, chunk_size=1024):
         """upload a local file to the remote server
         returns True if the file has been uploaded correctly (same md5 sum)
         """
@@ -127,7 +127,6 @@ class DBAppSecurityUSM:
         # upload local file by chunk
         import base64
 
-        chunk_size = 256
         for i in range(0, len(content), chunk_size):
             eoc = i + chunk_size  # end of chunk
             chunk_body = content[i:eoc]
