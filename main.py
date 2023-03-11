@@ -112,8 +112,11 @@ class DBAppSecurityUSM:
         """upload a local file to the remote server
         returns True if the file has been uploaded correctly (same md5 sum)
         """
+        logger.info(f"uploading {local_filepath} to {remote_filepath}")
+
         assert os.path.exists(local_filepath)
         assert os.path.isfile(local_filepath)
+
         # read local file
         with open(local_filepath, mode="rb") as f:
             content = f.read()
