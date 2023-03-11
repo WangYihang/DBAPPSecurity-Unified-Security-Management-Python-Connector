@@ -39,6 +39,26 @@ poetry install
     poetry run python main.py
     ```
 
+## 示例代码
+
+1. 上传文件
+
+    ```
+    client = derive_new_client(server_id=1)
+    client.enter_server()
+    client.upload_file("/etc/passwd", "/tmp/49e43945-5270-4d16-9d73-917eff2710e8")
+    client.exit_server()
+    ```
+
+2. 执行系统命令并返回命令执行结果
+
+    ```python
+    client = derive_new_client(server_id=1)
+    client.enter_server()
+    print(client.shell_exec("id"))
+    client.exit_server()
+    ```
+
 ## FAQ
 
 1. 如何获取身份验证码

@@ -108,6 +108,38 @@ class DBAppSecurityUSM:
             response += ch
         return response
 
+    def upload_file(self, local_filepath, remote_filepath):
+        """upload a local file to the remote server
+        returns True if the file has been uploaded correctly (same md5 sum)
+        """
+        assert os.path.exists(local_filepath)
+        assert os.path.isfile(local_filepath)
+        # read local file
+        with open(local_filepath, mode="rb") as f:
+            content = f.read()
+
+        # empty the remote file
+        self.shell_exec(f"echo -n > {remote_filepath}")
+
+        # upload local file by chunk
+        import base64
+
+        chunk_size = 256
+        for i in range(0, len(content), chunk_size):
+            eoc = i + chunk_size  # end of chunk
+            chunk_body = content[i:eoc]
+            command = f'echo -ne {repr(base64.b64encode(chunk_body).decode("utf-8"))} | base64 -d >> {remote_filepath}'
+            self.shell_exec(command)
+
+        # verify hash of uploaded file
+        import hashlib
+
+        local_filehash = hashlib.md5(content).hexdigest()
+        remote_filehash = self.shell_exec(f"md5sum -b {remote_filepath}").decode("utf-8")
+        logger.info(f"local file hash: {local_filehash}")
+        logger.info(f"remote file hash: {remote_filehash}")
+        return remote_filehash.startswith(local_filehash)
+
 
 @timeout_decorator.timeout(60)
 def enter_shell_exec_exit(client, server_id, command):
