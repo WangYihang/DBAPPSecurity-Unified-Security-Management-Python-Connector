@@ -242,11 +242,11 @@ def install_kind_via_golang():
 
 
 def check_docker_version():
-    batch(["docker --version"])
+    batch(["sudo docker version"])
 
 
 def check_docker_compose_version():
-    batch(["docker compose version"])
+    batch(["sudo docker compose version"])
 
 
 def check_golang_version():
